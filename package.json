@@ -1,12 +1,12 @@
 {
-  "name": "ossey-studio-realistic",
+  "name": "ossey-studio-clo-ui",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -15,7 +15,8 @@
     "react-dom": "latest",
     "three": "latest",
     "@react-three/fiber": "latest",
-    "@react-three/drei": "latest"
+    "@react-three/drei": "latest",
+    "lucide-react": "latest"
   },
   "devDependencies": {}
 }

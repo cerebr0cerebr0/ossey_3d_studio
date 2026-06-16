@@ -1,22 +1,13 @@
-# OSSEY Studio Realistic
+# OSSEY Studio - CLO Style UI
 
-Personal web app to preview garments before sewing.
+This version is designed to look much closer to the reference: a fashion design workspace with a 2D pattern window, 3D avatar preview, toolbar, top menu and property editor.
 
-## Run locally
-```bash
+## Run
 npm install
 npm run dev
-```
-
-## Make it more realistic
-Put your real 3D files here:
-
-- `public/models/mannequin.glb`
-- `public/models/dress.glb`
-- `public/models/top.glb`
-- `public/models/skirt.glb`
-
-The app already has fallback shapes, but the realistic result comes from real `.glb` models.
 
 ## Deploy
-Push to GitHub, then import the repository in Vercel.
+Push to GitHub, then import the repo in Vercel.
+
+## Next step for true realism
+Replace the generated 3D placeholder with real `.glb` models for avatar and garments in `public/models`.
