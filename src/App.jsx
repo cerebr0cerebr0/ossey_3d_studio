@@ -1,250 +1,176 @@
-import React, { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Canvas } from "@react-three/fiber";
-import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Environment, OrbitControls, ContactShadows, Html, useGLTF, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import "./style.css";
 
-function Mannequin() {
-  const skin = "#d8b28c";
-  const hair = "#24140f";
+const MODEL_PATHS = {
+  mannequin: "/models/mannequin.glb",
+  dress: "/models/dress.glb",
+  top: "/models/top.glb",
+  skirt: "/models/skirt.glb"
+};
 
+function FallbackMannequin() {
+  const material = new THREE.MeshStandardMaterial({ color: "#c79c7a", roughness: 0.55 });
   return (
-    <group position={[0, -1.2, 0]}>
-      <mesh position={[0, 3.05, 0]}>
-        <sphereGeometry args={[0.27, 32, 32]} />
-        <meshStandardMaterial color={skin} roughness={0.55} />
-      </mesh>
+    <group position={[0, -1.18, 0]}>
+      <mesh material={material} position={[0, 2.72, 0]}><sphereGeometry args={[0.24, 48, 48]} /></mesh>
+      <mesh material={material} position={[0, 1.82, 0]} scale={[0.46, 0.92, 0.26]}><capsuleGeometry args={[0.42, 1.15, 24, 48]} /></mesh>
+      <mesh material={material} position={[-0.45, 1.82, 0]} rotation={[0, 0, -0.25]}><capsuleGeometry args={[0.055, 1.25, 16, 32]} /></mesh>
+      <mesh material={material} position={[0.45, 1.82, 0]} rotation={[0, 0, 0.25]}><capsuleGeometry args={[0.055, 1.25, 16, 32]} /></mesh>
+      <mesh material={material} position={[-0.15, 0.48, 0]}><capsuleGeometry args={[0.07, 1.35, 16, 32]} /></mesh>
+      <mesh material={material} position={[0.15, 0.48, 0]}><capsuleGeometry args={[0.07, 1.35, 16, 32]} /></mesh>
+    </group>
+  );
+}
 
-      <mesh position={[0, 3.16, -0.08]} scale={[1, 0.75, 0.65]}>
-        <sphereGeometry args={[0.29, 32, 32]} />
-        <meshStandardMaterial color={hair} roughness={0.8} />
-      </mesh>
+function LoadableModel({ url, fallback, materialOverride, scale = 1, position = [0, 0, 0] }) {
+  try {
+    const { scene } = useGLTF(url);
+    const cloned = useMemo(() => scene.clone(true), [scene]);
 
-      <mesh position={[0, 2.65, 0]}>
-        <capsuleGeometry args={[0.08, 0.24, 12, 24]} />
-        <meshStandardMaterial color={skin} />
-      </mesh>
+    useMemo(() => {
+      if (!materialOverride) return;
+      cloned.traverse((obj) => {
+        if (obj.isMesh) {
+          obj.castShadow = true;
+          obj.receiveShadow = true;
+          obj.material = materialOverride;
+        }
+      });
+    }, [cloned, materialOverride]);
 
-      <mesh position={[0, 1.95, 0]} scale={[0.48, 1.0, 0.28]}>
-        <capsuleGeometry args={[0.42, 1.05, 16, 32]} />
-        <meshStandardMaterial color={skin} roughness={0.6} />
-      </mesh>
+    return <primitive object={cloned} scale={scale} position={position} />;
+  } catch {
+    return fallback;
+  }
+}
 
-      <mesh position={[-0.62, 2.0, 0]} rotation={[0, 0, -0.5]}>
-        <capsuleGeometry args={[0.07, 1.25, 16, 32]} />
-        <meshStandardMaterial color={skin} />
+function FallbackDress({ material, length }) {
+  return (
+    <group position={[0, -0.05, 0]}>
+      <mesh material={material} position={[0, 0.74, 0]} scale={[0.55, 0.72, 0.32]}>
+        <capsuleGeometry args={[0.5, 0.74, 32, 64]} />
       </mesh>
-
-      <mesh position={[0.62, 2.0, 0]} rotation={[0, 0, 0.5]}>
-        <capsuleGeometry args={[0.07, 1.25, 16, 32]} />
-        <meshStandardMaterial color={skin} />
-      </mesh>
-
-      <mesh position={[-0.22, 0.62, 0]} rotation={[0, 0, 0.04]}>
-        <capsuleGeometry args={[0.09, 1.45, 16, 32]} />
-        <meshStandardMaterial color={skin} />
-      </mesh>
-
-      <mesh position={[0.22, 0.62, 0]} rotation={[0, 0, -0.04]}>
-        <capsuleGeometry args={[0.09, 1.45, 16, 32]} />
-        <meshStandardMaterial color={skin} />
+      <mesh material={material} position={[0, -0.2 - (length - 1) * 0.18, 0]} scale={[0.85, 1.0 * length, 0.48]}>
+        <coneGeometry args={[0.78, 1.45, 96, 2, true]} />
       </mesh>
     </group>
   );
 }
 
-function ClothingMaterial({ color, fabric }) {
-  const texture = useMemo(() => {
-    if (!fabric) return null;
-    const tex = new THREE.TextureLoader().load(fabric);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(2.2, 2.2);
-    return tex;
-  }, [fabric]);
-
+function FallbackTop({ material }) {
   return (
-    <meshStandardMaterial
-      color={color}
-      map={texture}
-      roughness={0.68}
-      metalness={0.02}
-      side={THREE.DoubleSide}
-    />
+    <mesh material={material} position={[0, 0.72, 0]} scale={[0.58, 0.72, 0.34]}>
+      <capsuleGeometry args={[0.5, 0.7, 32, 64]} />
+    </mesh>
   );
 }
 
-function Clothing({ type, color, fabric, length, flare }) {
-  const material = <ClothingMaterial color={color} fabric={fabric} />;
-  const long = length === "Long" ? 1.45 : length === "Midi" ? 1.15 : 0.78;
-  const width = flare === "Wide" ? 0.95 : flare === "Slim" ? 0.58 : 0.75;
-
-  if (type === "Top") {
-    return (
-      <group>
-        <mesh position={[0, 1.95, 0]} scale={[0.66, 0.55, 0.36]}>
-          <capsuleGeometry args={[0.52, 0.58, 16, 32]} />
-          {material}
-        </mesh>
-      </group>
-    );
-  }
-
-  if (type === "Skirt") {
-    return (
-      <mesh position={[0, 0.83 - long / 2, 0]} scale={[1, 1, 0.62]}>
-        <coneGeometry args={[width, long, 96, 1, true]} />
-        {material}
-      </mesh>
-    );
-  }
-
-  if (type === "Pants") {
-    return (
-      <group>
-        <mesh position={[-0.18, 0.45, 0]} scale={[0.28, 1.15, 0.24]}>
-          <capsuleGeometry args={[0.35, 1.35, 16, 32]} />
-          {material}
-        </mesh>
-        <mesh position={[0.18, 0.45, 0]} scale={[0.28, 1.15, 0.24]}>
-          <capsuleGeometry args={[0.35, 1.35, 16, 32]} />
-          {material}
-        </mesh>
-      </group>
-    );
-  }
-
+function FallbackSkirt({ material, length }) {
   return (
-    <group>
-      <mesh position={[0, 1.88, 0]} scale={[0.67, 0.58, 0.36]}>
-        <capsuleGeometry args={[0.52, 0.58, 16, 32]} />
-        {material}
-      </mesh>
-      <mesh position={[0, 1.1 - long / 2, 0]} scale={[1, 1, 0.62]}>
-        <coneGeometry args={[width, long, 96, 1, true]} />
-        {material}
-      </mesh>
-    </group>
+    <mesh material={material} position={[0, -0.28 - (length - 1) * 0.15, 0]} scale={[0.86, 0.92 * length, 0.5]}>
+      <coneGeometry args={[0.78, 1.35, 96, 2, true]} />
+    </mesh>
   );
+}
+
+function Clothing({ garment, color, fabricUrl, length }) {
+  const texture = fabricUrl ? useTexture(fabricUrl) : null;
+  if (texture) {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2.2, 2.2);
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }
+  const material = useMemo(() => new THREE.MeshPhysicalMaterial({
+    color,
+    map: texture || null,
+    roughness: 0.78,
+    metalness: 0,
+    sheen: 0.65,
+    sheenRoughness: 0.9,
+    side: THREE.DoubleSide
+  }), [color, texture]);
+
+  if (garment === "Top") return <LoadableModel url={MODEL_PATHS.top} materialOverride={material} fallback={<FallbackTop material={material} />} />;
+  if (garment === "Skirt") return <LoadableModel url={MODEL_PATHS.skirt} materialOverride={material} fallback={<FallbackSkirt material={material} length={length} />} />;
+  return <LoadableModel url={MODEL_PATHS.dress} materialOverride={material} fallback={<FallbackDress material={material} length={length} />} />;
+}
+
+function RotatingStand() {
+  const ref = useRef();
+  useFrame((_, delta) => { if (ref.current) ref.current.rotation.y += delta * 0.18; });
+  return <group ref={ref} />;
 }
 
 function Scene(props) {
   return (
-    <Canvas camera={{ position: [0, 1.6, 4.8], fov: 42 }}>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3.5, 5, 4]} intensity={1.7} />
-      <Environment preset="studio" />
-      <Mannequin />
-      <Clothing {...props} />
-      <ContactShadows position={[0, -1.18, 0]} opacity={0.32} scale={8} blur={2.2} />
-      <OrbitControls enablePan={false} minDistance={3} maxDistance={7} />
+    <Canvas shadows camera={{ position: [0, 1.35, 4.8], fov: 35 }}>
+      <color attach="background" args={["#ece8df"]} />
+      <ambientLight intensity={0.75} />
+      <directionalLight castShadow position={[3.5, 5, 3]} intensity={2.2} shadow-mapSize={[2048, 2048]} />
+      <Suspense fallback={<Html center>Loading OSSEY Studio...</Html>}>
+        <Environment preset="apartment" />
+        <group>
+          <LoadableModel url={MODEL_PATHS.mannequin} fallback={<FallbackMannequin />} />
+          <group position={[0, 0.08, 0]}>
+            <Clothing {...props} />
+          </group>
+        </group>
+      </Suspense>
+      <ContactShadows position={[0, -1.18, 0]} opacity={0.38} scale={7} blur={2.5} />
+      <OrbitControls enablePan={false} minDistance={3.2} maxDistance={7} target={[0, 0.65, 0]} />
     </Canvas>
   );
 }
 
 function App() {
-  const [type, setType] = useState("Dress");
-  const [color, setColor] = useState("#1f78b4");
-  const [fabric, setFabric] = useState(null);
-  const [clientName, setClientName] = useState("");
-  const [note, setNote] = useState("");
-  const [length, setLength] = useState("Mini");
-  const [flare, setFlare] = useState("Classic");
+  const [garment, setGarment] = useState("Dress");
+  const [color, setColor] = useState("#8b2f2f");
+  const [fabricUrl, setFabricUrl] = useState(null);
+  const [length, setLength] = useState(1);
+  const [client, setClient] = useState("");
+  const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState([]);
 
-  function uploadFabric(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setFabric(URL.createObjectURL(file));
+  function uploadFabric(e) {
+    const file = e.target.files?.[0];
+    if (file) setFabricUrl(URL.createObjectURL(file));
   }
 
   function savePrototype() {
-    const prototype = {
-      id: Date.now(),
-      clientName: clientName || "Client prototype",
-      type,
-      color,
-      length,
-      flare,
-      note
-    };
-    setSaved([prototype, ...saved]);
-    setClientName("");
-    setNote("");
+    setSaved([{ id: Date.now(), client: client || "Unnamed client", garment, color, notes }, ...saved]);
+    setNotes("");
   }
 
   return (
     <div className="app">
       <aside className="sidebar">
-        <div className="brand">
-          <div className="logo">O</div>
-          <div>
-            <h1>OSSEY Studio</h1>
-            <p>Voir l’habit avant couture</p>
+        <div className="brand"><div className="mark">O</div><div><h1>OSSEY Studio</h1><p>Preview before sewing</p></div></div>
+        <section className="card">
+          <label>Client</label>
+          <input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Client name" />
+          <label>Garment</label>
+          <div className="tabs">
+            {['Dress','Top','Skirt'].map(x => <button className={garment===x?'active':''} onClick={() => setGarment(x)} key={x}>{x}</button>)}
           </div>
-        </div>
-
-        <section className="panel">
-          <label>Client name</label>
-          <input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Ex: Ama" />
-
-          <label>Clothing type</label>
-          <select value={type} onChange={(e) => setType(e.target.value)}>
-            <option>Dress</option>
-            <option>Top</option>
-            <option>Skirt</option>
-            <option>Pants</option>
-          </select>
-
-          <label>Length</label>
-          <select value={length} onChange={(e) => setLength(e.target.value)}>
-            <option>Mini</option>
-            <option>Midi</option>
-            <option>Long</option>
-          </select>
-
-          <label>Shape</label>
-          <select value={flare} onChange={(e) => setFlare(e.target.value)}>
-            <option>Classic</option>
-            <option>Slim</option>
-            <option>Wide</option>
-          </select>
-
-          <label>Main color</label>
+          <label>Fabric color</label>
           <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-
-          <label>Upload fabric / pattern</label>
+          <label>Upload real fabric / lace / pattern</label>
           <input type="file" accept="image/*" onChange={uploadFabric} />
-
-          <label>Notes</label>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Measurements, sleeve style, fabric notes..." />
-
-          <button onClick={savePrototype}>Save Prototype</button>
+          <label>Length adjustment</label>
+          <input type="range" min="0.75" max="1.35" step="0.01" value={length} onChange={(e) => setLength(Number(e.target.value))} />
+          <label>Sewing notes</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sleeves, neckline, measurements, changes..." />
+          <button className="save" onClick={savePrototype}>Save prototype</button>
         </section>
-
-        <section className="saved">
-          <h2>Saved Prototypes</h2>
-          {saved.length === 0 && <p>No prototype saved yet.</p>}
-          {saved.map((item) => (
-            <div className="saved-card" key={item.id}>
-              <strong>{item.clientName}</strong>
-              <span>{item.type} · {item.length} · {item.flare}</span>
-            </div>
-          ))}
-        </section>
+        <section className="saved"><h2>Saved</h2>{saved.map(s => <div className="savedItem" key={s.id}><b>{s.client}</b><span>{s.garment}</span></div>)}</section>
       </aside>
-
-      <main className="viewer">
-        <header className="topbar">
-          <div>
-            <h2>{type} Preview</h2>
-            <p>Rotate, zoom, test fabric and validate before sewing.</p>
-          </div>
-        </header>
-        <div className="canvas-wrap">
-          <Scene type={type} color={color} fabric={fabric} length={length} flare={flare} />
-        </div>
+      <main className="stage">
+        <div className="topbar"><h2>{garment} preview</h2><p>Place real .glb models inside public/models for a more realistic OSSEY fitting preview.</p></div>
+        <div className="viewer"><Scene garment={garment} color={color} fabricUrl={fabricUrl} length={length} /></div>
       </main>
     </div>
   );

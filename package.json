@@ -1,5 +1,5 @@
 {
-  "name": "ossey-studio",
+  "name": "ossey-studio-realistic",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -13,10 +13,9 @@
     "vite": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "@react-three/fiber": "latest",
-    "@react-three/drei": "latest",
     "three": "latest",
-    "firebase": "latest"
+    "@react-three/fiber": "latest",
+    "@react-three/drei": "latest"
   },
   "devDependencies": {}
 }

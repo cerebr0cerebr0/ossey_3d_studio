@@ -1,14 +1,22 @@
-# OSSEY Studio
+# OSSEY Studio Realistic
 
-Personal 3D preview app to see clothing ideas before sewing.
+Personal web app to preview garments before sewing.
 
 ## Run locally
-
 ```bash
 npm install
 npm run dev
 ```
 
-## Deploy
+## Make it more realistic
+Put your real 3D files here:
 
-Push this folder to GitHub, then import the repository on Vercel.
+- `public/models/mannequin.glb`
+- `public/models/dress.glb`
+- `public/models/top.glb`
+- `public/models/skirt.glb`
+
+The app already has fallback shapes, but the realistic result comes from real `.glb` models.
+
+## Deploy
+Push to GitHub, then import the repository in Vercel.

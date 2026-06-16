@@ -1,0 +1,5 @@
+Add your real GLB models here:
+mannequin.glb
+dress.glb
+top.glb
+skirt.glb
